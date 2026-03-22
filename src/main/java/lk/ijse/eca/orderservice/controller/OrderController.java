@@ -107,20 +107,20 @@ public class OrderController {
     }
 
     @DeleteMapping("/{orderId}")
-    public ResponseEntity<Void> deleteOrder(
+    public ResponseEntity<String> deleteOrder(
             @PathVariable @Positive(message = "Order ID must be a positive number") Long orderId) {
         log.info("DELETE /api/v1/orders/{}", orderId);
         orderService.deleteOrder(orderId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Order deleted successfully");
     }
 
     @PutMapping("/{orderId}/status")
-    public ResponseEntity<Void> updateOrderStatus(
+    public ResponseEntity<String> updateOrderStatus(
             @PathVariable @Positive(message = "Order ID must be a positive number") Long orderId,
             @RequestParam Order.OrderStatus newStatus) {
         log.info("PUT /api/v1/orders/{}/status?newStatus={}", orderId, newStatus);
         orderService.updateOrderStatus(orderId, newStatus);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("Order status updated successfully");
     }
 
     @PostMapping("/{orderId}/items")
@@ -133,11 +133,11 @@ public class OrderController {
     }
 
     @DeleteMapping("/items/{orderItemId}")
-    public ResponseEntity<Void> removeOrderItem(
+    public ResponseEntity<String> removeOrderItem(
             @PathVariable @Positive(message = "Order item ID must be a positive number") Long orderItemId) {
         log.info("DELETE /api/v1/orders/items/{}", orderItemId);
         orderService.removeOrderItem(orderItemId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Order item removed successfully");
     }
 
     // Analytics Endpoints
