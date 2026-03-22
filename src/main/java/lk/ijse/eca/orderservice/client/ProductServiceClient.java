@@ -32,4 +32,19 @@ public class ProductServiceClient {
                     "Unable to validate product: " + productId, e);
         }
     }
+
+    public void reduceStock(String productId, Integer quantity) {
+        log.debug("Reducing stock for product in Product-Service: product ID={}, quantity={}", productId, quantity);
+        try {
+            restClient.put()
+                    .uri("/api/v1/products/{id}/stock/reduce?quantity={qty}", productId, quantity)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("Stock reduced successfully for product: {}, quantity: {}", productId, quantity);
+        } catch (RestClientException e) {
+            log.error("Failed to reduce stock for product ID: {}, quantity: {}", productId, quantity, e);
+            throw new ProductServiceException(
+                    "Unable to reduce stock for product: " + productId + ", quantity: " + quantity, e);
+        }
+    }
 }

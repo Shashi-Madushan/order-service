@@ -1,5 +1,6 @@
 package lk.ijse.eca.orderservice.service.impl;
 
+import lk.ijse.eca.orderservice.client.ProductServiceClient;
 import lk.ijse.eca.orderservice.dto.AnalyticsDto;
 import lk.ijse.eca.orderservice.dto.OrderDto;
 import lk.ijse.eca.orderservice.entity.Order;
@@ -18,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,13 +27,17 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderServiceImpl implements OrderService {
 
+    private static final String WALK_IN_CUSTOMER_ID = "WALKIN";
+
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final OrderMapper orderMapper;
+    private final ProductServiceClient productServiceClient;
 
     @Override
     @Transactional
     public OrderDto createOrder(OrderDto dto) {
+        prepareOrderForPos(dto);
         log.debug("Creating order for customer: {}", dto.getCustomerId());
 
         Order order = orderMapper.toEntityWithItems(dto);
@@ -42,7 +48,21 @@ public class OrderServiceImpl implements OrderService {
 
         Order saved = orderRepository.save(order);
 
-        log.info("Order created successfully with ID: {}", saved.getOrderId());
+        // Reduce product stock for each order item
+        if (saved.getOrderItems() != null && !saved.getOrderItems().isEmpty()) {
+            for (OrderItem item : saved.getOrderItems()) {
+                try {
+                    productServiceClient.reduceStock(item.getProductId(), item.getQuantity());
+                    log.debug("Stock reduced for product: {}, quantity: {}", item.getProductId(), item.getQuantity());
+                } catch (Exception e) {
+                    log.error("Failed to reduce stock for product: {}. Order ID: {}", item.getProductId(), saved.getOrderId(), e);
+                    throw new RuntimeException("Failed to update product stock for product: " + item.getProductId(), e);
+                }
+            }
+        }
+
+        log.info("Order created successfully with ID: {} and stock updated for {} items", saved.getOrderId(), 
+                saved.getOrderItems() != null ? saved.getOrderItems().size() : 0);
         return orderMapper.toDtoWithItems(saved);
     }
 
@@ -58,6 +78,15 @@ public class OrderServiceImpl implements OrderService {
                 });
 
         orderMapper.updateEntity(dto, order);
+
+        if (dto.getCustomerId() != null) {
+            order.setCustomerId(normalizeCustomerId(dto.getCustomerId()));
+        }
+
+        if (dto.getOrderDate() == null && order.getOrderDate() == null) {
+            order.setOrderDate(LocalDateTime.now());
+        }
+
         Order updated = orderRepository.save(order);
         log.info("Order updated successfully: {}", orderId);
         return orderMapper.toDtoWithItems(updated);
@@ -294,5 +323,20 @@ public class OrderServiceImpl implements OrderService {
 
         orderItemRepository.delete(orderItem);
         log.info("Order item removed: {}", orderItemId);
+    }
+
+    private void prepareOrderForPos(OrderDto dto) {
+        dto.setCustomerId(normalizeCustomerId(dto.getCustomerId()));
+
+        if (dto.getOrderDate() == null) {
+            dto.setOrderDate(LocalDateTime.now());
+        }
+    }
+
+    private String normalizeCustomerId(String customerId) {
+        if (customerId == null || customerId.isBlank()) {
+            return WALK_IN_CUSTOMER_ID;
+        }
+        return customerId.trim().toUpperCase(Locale.ROOT);
     }
 }

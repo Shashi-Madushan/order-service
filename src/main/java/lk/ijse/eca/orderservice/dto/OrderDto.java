@@ -26,7 +26,7 @@ public class OrderDto {
     @NotNull(groups = OnCreate.class, message = "Order date is required")
     private LocalDateTime orderDate;
 
-    @NotBlank(groups = OnCreate.class, message = "Customer ID is required")
+    @Size(max = 10, message = "Customer ID must be at most 10 characters")
     private String customerId;
 
     @NotNull(groups = OnCreate.class, message = "Order status is required")
