@@ -2,7 +2,7 @@ package lk.ijse.eca.orderservice.service.impl;
 
 import lk.ijse.eca.orderservice.dto.OrderDto;
 import lk.ijse.eca.orderservice.service.DocumentService;
-import lk.ijse.eca.orderservice.service.GoogleCloudStorageService;
+import lk.ijse.eca.orderservice.service.LocalStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,16 +15,14 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 public class DocumentServiceImpl implements DocumentService {
 
-    private final GoogleCloudStorageService storageService;
+    private final LocalStorageService localStorageService;
 
     @Override
     public String generateReceipt(OrderDto order) throws IOException {
         String fileName = "receipts/receipt_" + order.getOrderId() + ".txt";
         String receiptContent = buildReceiptContent(order);
         
-        byte[] content = receiptContent.getBytes();
-        return storageService.uploadFile(new org.springframework.mock.web.MockMultipartFile(
-                fileName, fileName, "text/plain", content), fileName);
+        return localStorageService.saveFile(receiptContent.getBytes(), fileName, "text/plain");
     }
 
     @Override
@@ -32,19 +30,17 @@ public class DocumentServiceImpl implements DocumentService {
         String fileName = "invoices/invoice_" + order.getOrderId() + ".txt";
         String invoiceContent = buildInvoiceContent(order);
         
-        byte[] content = invoiceContent.getBytes();
-        return storageService.uploadFile(new org.springframework.mock.web.MockMultipartFile(
-                fileName, fileName, "text/plain", content), fileName);
+        return localStorageService.saveFile(invoiceContent.getBytes(), fileName, "text/plain");
     }
 
     @Override
     public byte[] downloadReceipt(String fileName) throws IOException {
-        return storageService.downloadFile(fileName);
+        return localStorageService.readFile(fileName);
     }
 
     @Override
     public byte[] downloadInvoice(String fileName) throws IOException {
-        return storageService.downloadFile(fileName);
+        return localStorageService.readFile(fileName);
     }
 
     private String buildReceiptContent(OrderDto order) {

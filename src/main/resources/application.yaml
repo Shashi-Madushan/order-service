@@ -1,10 +1,20 @@
 spring:
   application:
-    name: enrollment-service
+    name: order-service
+
+  profiles:
+    active: dev
 
   config:
     import: "configserver:"
 
   cloud:
     config:
-      uri: http://config.platform:9000
+#      uri: http://config.platform:9000
+      uri: http://localhost:9000
+
+gcp:
+  project:
+    id: eca-project-2026
+  credentials:
+    file: gcp-credentials.json

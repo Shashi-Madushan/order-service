@@ -12,11 +12,12 @@ import java.util.List;
 @Repository
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
-    List<OrderItem> findByOrderId(Long orderId);
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.order.orderId = :orderId")
+    List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
 
     List<OrderItem> findByProductId(String productId);
 
-    @Query("SELECT oi.productId, SUM(oi.quantity), SUM(oi.totalPrice) FROM OrderItem oi JOIN oi.order o WHERE o.orderDate BETWEEN :startDate AND :endDate GROUP BY oi.productId ORDER BY SUM(oi.totalPrice) DESC")
+    @Query("SELECT oi.productId, oi.productName, SUM(oi.quantity), SUM(oi.totalPrice) FROM OrderItem oi JOIN oi.order o WHERE o.orderDate BETWEEN :startDate AND :endDate GROUP BY oi.productId, oi.productName ORDER BY SUM(oi.totalPrice) DESC")
     List<Object[]> getTopSellingProducts(@Param("startDate") java.time.LocalDateTime startDate, @Param("endDate") java.time.LocalDateTime endDate);
 
     @Query("SELECT oi.productId, SUM(oi.quantity) FROM OrderItem oi JOIN oi.order o WHERE o.orderDate BETWEEN :startDate AND :endDate GROUP BY oi.productId ORDER BY SUM(oi.quantity) DESC")

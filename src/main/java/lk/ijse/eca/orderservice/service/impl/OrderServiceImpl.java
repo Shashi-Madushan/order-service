@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,13 +35,12 @@ public class OrderServiceImpl implements OrderService {
         log.debug("Creating order for customer: {}", dto.getCustomerId());
 
         Order order = orderMapper.toEntityWithItems(dto);
-        Order saved = orderRepository.save(order);
-        
-        // Set order reference for order items and save them
+
         if (order.getOrderItems() != null) {
-            order.getOrderItems().forEach(item -> item.setOrder(saved));
-            orderItemRepository.saveAll(order.getOrderItems());
+            order.getOrderItems().forEach(item -> item.setOrder(order));
         }
+
+        Order saved = orderRepository.save(order);
 
         log.info("Order created successfully with ID: {}", saved.getOrderId());
         return orderMapper.toDtoWithItems(saved);
@@ -150,7 +150,7 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal totalRevenue = orderRepository.calculateTotalRevenueBetween(startDate, endDate);
         Long totalOrders = orderRepository.countByOrderStatus(Order.OrderStatus.DELIVERED);
         BigDecimal averageOrderValue = totalOrders > 0 ? 
-                totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO;
+                totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
 
         List<Object[]> paymentMethodData = orderRepository.getSalesByPaymentMethod(startDate, endDate);
         List<AnalyticsDto.PaymentMethodAnalytics> paymentAnalytics = paymentMethodData.stream()
@@ -273,8 +273,12 @@ public class OrderServiceImpl implements OrderService {
         orderItem.setOrder(order);
         orderItemRepository.save(orderItem);
 
+        // Refresh order so the latest line items are included
+        Order refreshedOrder = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+
         log.info("Order item added to order: {}", orderId);
-        return orderMapper.toDtoWithItems(order);
+        return orderMapper.toDtoWithItems(refreshedOrder);
     }
 
     @Override

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: enrollment-service
+    name: order-service
 
   config:
     import: "configserver:"

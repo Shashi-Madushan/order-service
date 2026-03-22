@@ -16,7 +16,7 @@ public class CustomerServiceClient {
 
     public CustomerServiceClient(@LoadBalanced  RestClient.Builder restClientBuilder) {
         this.restClient = restClientBuilder
-                .baseUrl("http://CUSTOMER-SERVICE")
+                .baseUrl("http://IAM-SERVICE")
                 .build();
     }
 
